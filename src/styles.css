@@ -98,6 +98,9 @@ input {
   align-items: center;
   gap: clamp(10px, 2.4vw, 21px);
   min-width: max-content;
+  max-width: calc(100vw - 30px);
+  overflow-x: auto;
+  scrollbar-width: thin;
 }
 .provider-card {
   display: grid;
@@ -286,10 +289,22 @@ input {
 .context-menu button:hover {
   background: color-mix(in srgb, var(--accent) 14%, transparent);
 }
-.context-menu button span {
+.context-menu button .menu-check {
   display: inline-block;
   width: 10px;
   color: var(--accent);
+}
+.context-menu button .menu-label {
+  flex: 1;
+  min-width: 0;
+}
+.context-menu button small {
+  max-width: 70px;
+  overflow: hidden;
+  color: var(--text-muted);
+  font-size: 8px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 .menu-group {
   display: grid;

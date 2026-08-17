@@ -204,7 +204,7 @@ pub fn open_settings(app: AppHandle) -> Result<(), String> {
 pub fn open_about(app: AppHandle) -> Result<(), String> {
     open_utility_window(
         &app,
-        "settings",
+        "about",
         "About LimitLens",
         "index.html?about=1",
         460.0,

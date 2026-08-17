@@ -13,7 +13,8 @@ export function displayedPercent(provider: ProviderView, weeklyOverride: boolean
 }
 
 export function visibleProviders(state: AppViewState): ProviderView[] {
-  return state.providers.filter((provider) => provider.enabled);
+  // A ring represents a real installed client. Do not leave placeholder rings for unknown clients.
+  return state.providers.filter((provider) => provider.enabled && provider.detected);
 }
 
 export function cycleWindow(provider: ProviderView): string | null {

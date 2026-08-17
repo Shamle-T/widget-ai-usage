@@ -4,7 +4,7 @@
   "version": "0.1.0",
   "identifier": "com.limitlens.widget",
   "build": {
-    "beforeDevCommand": "npm.cmd run dev",
+    "beforeDevCommand": "npm.cmd run dev:frontend",
     "beforeBuildCommand": "npm.cmd run build",
     "devUrl": "http://localhost:1420",
     "frontendDist": "../dist"
@@ -23,7 +23,7 @@
         "transparent": true,
         "shadow": true,
         "alwaysOnTop": false,
-        "skipTaskbar": true,
+        "skipTaskbar": false,
         "center": true
       }
     ],

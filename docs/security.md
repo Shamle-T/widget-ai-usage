@@ -4,7 +4,7 @@ Review date: 2026-08-17. This review covers the current foundation, not a claim 
 
 ## Reviewed controls
 
-- **Provider execution:** current adapters do not spawn provider processes. Detection is a `PATH` lookup of fixed executable names. There is no shell invocation, command interpolation, shell flag, or arbitrary command IPC.
+- **Provider execution:** Codex is invoked only as the fixed direct command `codex app-server` (the platform npm shim is `codex.cmd` on Windows), with no shell command string, interpolation, user-controlled arguments, or arbitrary command IPC. The adapter sends only the documented initialization messages and `account/rateLimits/read`, limits the response to 16 lines of 64 KiB each, waits at most eight seconds, and terminates the child process after the request. Claude and Kimi use only a `PATH` lookup.
 - **Credentials:** LimitLens does not read provider configuration, browser cookies, environment variables, prompts, response logs, source files, or shell history. It stores no secrets.
 - **IPC:** the WebView has narrow typed commands for settings, refresh, view state, hiding/quitting, and settings windows. There is no frontend filesystem, shell, HTTP, or arbitrary window-command bridge.
 - **Data at rest:** settings and the minimal normalized usage cache are separate versioned JSON files in the application data directory. Writes use temporary files and replacement. Cache payloads exclude credentials, prompts, responses, source paths, and raw provider stderr.

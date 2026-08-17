@@ -74,7 +74,7 @@ function renderContextMenu(appState: AppViewState): string {
     .map(
       (provider) => `
         <button type="button" data-action="toggle-provider" data-provider-id="${provider.id}" role="menuitemcheckbox" aria-checked="${provider.enabled}">
-          <span>${provider.enabled ? "✓" : ""}</span>${escapeHtml(provider.displayName)}
+          <span class="menu-check">${provider.enabled ? "✓" : ""}</span><span class="menu-label">${escapeHtml(provider.displayName)}</span><small>${provider.detected ? statusLabel(provider.status) : "Not detected"}</small>
         </button>`,
     )
     .join("");
@@ -82,7 +82,7 @@ function renderContextMenu(appState: AppViewState): string {
     .map(
       (minutes) => `
         <button type="button" data-action="set-interval" data-minutes="${minutes}" role="menuitemradio" aria-checked="${appState.refreshIntervalMinutes === minutes}">
-          <span>${appState.refreshIntervalMinutes === minutes ? "✓" : ""}</span>${minutes} minute${minutes === 1 ? "" : "s"}
+          <span class="menu-check">${appState.refreshIntervalMinutes === minutes ? "✓" : ""}</span><span class="menu-label">${minutes} minute${minutes === 1 ? "" : "s"}</span>
         </button>`,
     )
     .join("");
@@ -92,12 +92,12 @@ function renderContextMenu(appState: AppViewState): string {
       <div class="menu-group"><span>Providers</span>${providerItems}<button type="button" data-action="settings" role="menuitem">Manage Providers...</button></div>
       <div class="menu-group"><span>Refresh Interval</span>${intervals}</div>
       <div class="menu-group"><span>Theme</span>
-        <button type="button" data-action="theme" data-theme="dark" role="menuitemradio" aria-checked="${appState.theme === "dark"}"><span>${appState.theme === "dark" ? "✓" : ""}</span>Dark</button>
-        <button type="button" data-action="theme" data-theme="light" role="menuitemradio" aria-checked="${appState.theme === "light"}"><span>${appState.theme === "light" ? "✓" : ""}</span>Light</button>
+        <button type="button" data-action="theme" data-theme="dark" role="menuitemradio" aria-checked="${appState.theme === "dark"}"><span class="menu-check">${appState.theme === "dark" ? "✓" : ""}</span><span class="menu-label">Dark</span></button>
+        <button type="button" data-action="theme" data-theme="light" role="menuitemradio" aria-checked="${appState.theme === "light"}"><span class="menu-check">${appState.theme === "light" ? "✓" : ""}</span><span class="menu-label">Light</span></button>
       </div>
-      <button type="button" data-action="always-on-top" role="menuitemcheckbox" aria-checked="${appState.alwaysOnTop}"><span>${appState.alwaysOnTop ? "✓" : ""}</span>Always on Top</button>
-      <button type="button" data-action="lock-position" role="menuitemcheckbox" aria-checked="${appState.lockPosition}"><span>${appState.lockPosition ? "✓" : ""}</span>Lock Position</button>
-      <button type="button" data-action="autostart" role="menuitemcheckbox" aria-checked="${appState.startWithSystem}"><span>${appState.startWithSystem ? "✓" : ""}</span>Start with System</button>
+      <button type="button" data-action="always-on-top" role="menuitemcheckbox" aria-checked="${appState.alwaysOnTop}"><span class="menu-check">${appState.alwaysOnTop ? "✓" : ""}</span><span class="menu-label">Always on Top</span></button>
+      <button type="button" data-action="lock-position" role="menuitemcheckbox" aria-checked="${appState.lockPosition}"><span class="menu-check">${appState.lockPosition ? "✓" : ""}</span><span class="menu-label">Lock Position</span></button>
+      <button type="button" data-action="autostart" role="menuitemcheckbox" aria-checked="${appState.startWithSystem}"><span class="menu-check">${appState.startWithSystem ? "✓" : ""}</span><span class="menu-label">Start with System</span></button>
       <div class="menu-divider"></div>
       <button type="button" data-action="settings" role="menuitem">Settings</button>
       <button type="button" data-action="about" role="menuitem">About</button>

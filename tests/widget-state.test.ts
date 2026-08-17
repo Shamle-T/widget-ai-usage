@@ -60,4 +60,19 @@ describe("widget state", () => {
     };
     expect(visibleProviders(state)).toHaveLength(1);
   });
+
+  it("hides enabled providers until their client is detected", () => {
+    const state = {
+      version: 1,
+      theme: "dark" as const,
+      weeklyOverride: false,
+      refreshIntervalMinutes: 5 as const,
+      alwaysOnTop: false,
+      lockPosition: false,
+      startWithSystem: false,
+      refreshing: false,
+      providers: [provider, { ...provider, id: "kimi", detected: false }],
+    };
+    expect(visibleProviders(state).map((item) => item.id)).toEqual(["codex"]);
+  });
 });

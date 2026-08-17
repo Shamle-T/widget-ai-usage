@@ -4,17 +4,17 @@ Research date: 2026-08-17. This document records the official interface evidence
 
 ## Codex
 
-| Concern                   | Finding                                                                                                                                                | Classification                     |
-| ------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------ | ---------------------------------- |
-| Client detection          | The official Codex repository documents the `codex` CLI on Windows, macOS, and Linux. LimitLens checks only whether `codex` resolves on `PATH`.        | Supported                          |
-| Account authentication    | The CLI supports ChatGPT plan sign-in and API-key operation. LimitLens does not read either credential.                                                | Supported client feature; not used |
-| Usage data                | Official pricing documentation says active CLI sessions can use interactive `/status`; it also directs users to the authenticated web usage dashboard. | Interactive only                   |
-| Structured external query | No official headless `codex status --json` or usage API was found. The Codex repository issue tracker explicitly identifies this as missing.           | Unavailable                        |
-| Windows/macOS/Linux       | Official binaries and install paths are documented for all target desktop platforms.                                                                   | Supported                          |
+| Concern                | Finding                                                                                                                                                                                                   | Classification                     |
+| ---------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------- |
+| Client detection       | The official Codex repository documents the `codex` CLI on Windows, macOS, and Linux. LimitLens checks only whether `codex` resolves on `PATH`.                                                           | Supported                          |
+| Account authentication | The CLI supports ChatGPT plan sign-in and API-key operation. LimitLens does not read either credential.                                                                                                   | Supported client feature; not used |
+| Usage data             | The official Codex app-server JSON-RPC protocol exposes `account/rateLimits/read`. Its result contains primary and secondary quota windows, `usedPercent`, and Unix `resetsAt` timestamps.                | Supported                          |
+| Process lifecycle      | `codex app-server` is spawned directly for a single read, receives `initialize` and `initialized`, has an eight-second timeout, and is terminated after the response. No model thread or turn is created. | Supported                          |
+| Windows/macOS/Linux    | Official binaries and install paths are documented for all target desktop platforms.                                                                                                                      | Supported                          |
 
-Result: the adapter detects Codex but reports usage retrieval as **Unsupported**. It does not start a terminal UI, invoke a model request, scrape a browser, or read Codex authentication state.
+Result: the adapter detects Codex and retrieves primary and secondary quota data through the documented app-server protocol. It does not start a terminal UI, invoke a model request, scrape a browser, or read Codex authentication state. The secondary window is normalized as weekly; if Codex omits it, LimitLens displays weekly usage as unavailable.
 
-Sources: [Codex CLI repository](https://github.com/openai/codex), [OpenAI Codex pricing](https://learn.chatgpt.com/docs/pricing), [headless-status request](https://github.com/openai/codex/issues/10233).
+Sources: [Codex CLI repository](https://github.com/openai/codex), [Codex app-server protocol](https://github.com/openai/codex/blob/main/codex-rs/app-server/README.md), [OpenAI Codex pricing](https://learn.chatgpt.com/docs/pricing).
 
 ## Claude Code
 

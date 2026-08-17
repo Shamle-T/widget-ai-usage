@@ -6,13 +6,13 @@ LimitLens is a compact local-first desktop widget for glancing at AI coding-serv
 
 ## Current status
 
-The Tauri widget foundation is implemented for Windows, macOS, and Linux architecture. Codex, Claude Code, and Kimi Code are registered providers with safe executable detection. Their live quota collection is intentionally **unavailable** in this revision because current official interfaces do not offer a stable, standalone, non-generative machine-readable usage query. LimitLens does not scrape terminal UIs, browser sessions, or credentials to fill that gap. Linux release artifacts remain subject to the documented GTK/WebKit Cargo Audit advisories in [security.md](docs/security.md).
+The Tauri widget foundation is implemented for Windows, macOS, and Linux architecture. Codex usage is collected through its documented local app-server rate-limit protocol. Claude Code and Kimi Code are registered with safe executable detection, but their live quota collection remains unavailable because no equivalent standalone, non-generative machine-readable query has been verified. LimitLens does not scrape terminal UIs, browser sessions, or credentials to fill that gap. Linux release artifacts remain subject to the documented GTK/WebKit Cargo Audit advisories in [security.md](docs/security.md).
 
-| Provider     | Detection               | Short-term  | Weekly      | Reset       | Platforms             |
-| ------------ | ----------------------- | ----------- | ----------- | ----------- | --------------------- |
-| OpenAI Codex | `PATH` executable check | Unavailable | Unavailable | Unavailable | Windows, macOS, Linux |
-| Claude Code  | `PATH` executable check | Unavailable | Unavailable | Unavailable | Windows, macOS, Linux |
-| Kimi Code    | `PATH` executable check | Unavailable | Unavailable | Unavailable | Windows, macOS, Linux |
+| Provider     | Detection               | Short-term  | Weekly                  | Reset                   | Platforms             |
+| ------------ | ----------------------- | ----------- | ----------------------- | ----------------------- | --------------------- |
+| OpenAI Codex | `PATH` executable check | Supported   | Supported when supplied | Supported when supplied | Windows, macOS, Linux |
+| Claude Code  | `PATH` executable check | Unavailable | Unavailable             | Unavailable             | Windows, macOS, Linux |
+| Kimi Code    | `PATH` executable check | Unavailable | Unavailable             | Unavailable             | Windows, macOS, Linux |
 
 See [provider research](docs/provider-research.md) for the evidence and policy behind this matrix.
 
@@ -48,17 +48,17 @@ Use `npm.cmd run dev` to start the development application on Windows PowerShell
 
 ## Provider requirements
 
-LimitLens only detects clients installed on `PATH`. It neither runs provider agents nor copies tokens from provider clients. A detected provider with unavailable usage remains visible and reports why in its tooltip and settings state.
+LimitLens only detects clients installed on `PATH`. It invokes Codex's documented read-only app-server method only to read its rate limits, and does not run any model turn or copy credentials. A detected provider with unavailable usage remains visible and reports why in its tooltip and settings state.
 
 When a provider documents a safe quota protocol, LimitLens will implement it behind a focused adapter with fixtures and contract tests. It will not use browser scraping, terminal emulation, local conversation-log parsing, or generated model requests as substitutes.
 
 ## Privacy and security
 
-LimitLens is local-first. Configuration and an optional last-known usage cache stay in the platform application-data directory. Current adapters store no credentials and make no provider network request. Review [security.md](docs/security.md) before contributing an integration.
+LimitLens is local-first. Configuration and an optional last-known usage cache stay in the platform application-data directory. Current adapters store no credentials. Codex uses its already authenticated official client to request quota metadata only. Review [security.md](docs/security.md) before contributing an integration.
 
 ## Resource usage
 
-The widget is designed for negligible idle work: one scheduler, no rendering loop, no filesystem polling, and no persistent provider processes. Measured release metrics have not yet been recorded because this development workspace lacks Rust/Cargo; see [performance.md](docs/performance.md).
+The widget is designed for negligible idle work: one scheduler, no rendering loop, no filesystem polling, and no persistent provider processes. Codex is a short-lived child process only during a refresh. See [performance.md](docs/performance.md) for the current measurement and protocol.
 
 ## Troubleshooting
 

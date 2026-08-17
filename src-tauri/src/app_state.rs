@@ -210,10 +210,11 @@ impl AppState {
             let provider_count = view
                 .providers
                 .iter()
-                .filter(|provider| provider.enabled)
+                .filter(|provider| provider.enabled && provider.detected)
                 .count()
                 .max(1) as f64;
-            let width = (142.0 + provider_count * 100.0).min(1_800.0);
+            // Grow for known providers and rely on the frontend scroll fallback past this cap.
+            let width = (142.0 + provider_count * 100.0).clamp(350.0, 1_800.0);
             let _ = window.set_size(PhysicalSize::new(width, 156.0));
         }
         let _ = app.emit("usage-state-updated", view);

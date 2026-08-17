@@ -2,7 +2,7 @@
   "$schema": "../gen/schemas/desktop-schema.json",
   "identifier": "default",
   "description": "Minimal permissions for the LimitLens desktop windows.",
-  "windows": ["main", "settings"],
+  "windows": ["main", "settings", "about"],
   "permissions": [
     "core:default",
     "core:window:allow-start-dragging",
