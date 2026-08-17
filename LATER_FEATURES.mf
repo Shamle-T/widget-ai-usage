@@ -1,0 +1,15 @@
+LimitLens Later Features
+
+- Choose an open-source license.
+- Notifications / quota threshold alerts.
+- Gemini CLI adapter.
+- OpenCode adapter.
+- GitHub Copilot adapter.
+- Cursor adapter.
+- Windsurf adapter.
+- OpenRouter adapter.
+- Additional provider integrations.
+- Optional provider logos after licensing/trademark review.
+- Local historical usage graphs.
+- Advanced provider ordering.
+- Signed automatic updater once release signing is configured.

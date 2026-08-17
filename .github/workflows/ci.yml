@@ -1,0 +1,63 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  quality:
+    name: Quality (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-latest, macos-latest, ubuntu-latest]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: 1.88.0
+          components: rustfmt, clippy
+      - name: Install Linux Tauri dependencies
+        if: runner.os == 'Linux'
+        run: sudo apt-get update && sudo apt-get install -y libwebkit2gtk-4.1-dev build-essential curl wget file libxdo-dev libssl-dev libayatana-appindicator3-dev librsvg2-dev
+      - name: Install JavaScript dependencies
+        run: npm ci
+      - name: Format
+        run: npm run format && cargo fmt --manifest-path src-tauri/Cargo.toml -- --check
+      - name: Lint
+        run: npm run lint && cargo clippy --manifest-path src-tauri/Cargo.toml --all-targets -- -D warnings
+      - name: Tests
+        run: npm test && cargo test --manifest-path src-tauri/Cargo.toml
+      - name: Frontend build
+        run: npm run build
+      - name: Tauri build
+        run: npm run tauri:build -- --no-bundle
+
+  dependency-audit:
+    name: Dependency audit
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: 1.88.0
+      - name: Install JavaScript dependencies
+        run: npm ci
+      - name: Audit JavaScript dependencies
+        run: npm audit
+      - name: Install Cargo Audit
+        run: cargo install cargo-audit --locked
+      - name: Audit Rust dependencies
+        run: cargo audit --file src-tauri/Cargo.lock

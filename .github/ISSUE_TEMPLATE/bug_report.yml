@@ -1,0 +1,23 @@
+name: Bug report
+description: Report a reproducible LimitLens issue without including secrets.
+title: "bug: "
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: Do not include access tokens, cookies, prompts, source code, or provider configuration.
+  - type: input
+    id: version
+    attributes:
+      label: LimitLens version
+  - type: dropdown
+    id: platform
+    attributes:
+      label: Platform
+      options: [Windows, macOS, Linux]
+  - type: textarea
+    id: steps
+    attributes:
+      label: Reproduction steps
+    validations:
+      required: true
