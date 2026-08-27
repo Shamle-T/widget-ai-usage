@@ -1,12 +1,12 @@
 # LimitLens
 
-LimitLens is a compact local-first desktop widget for glancing at AI coding-service usage limits without opening multiple dashboards.
+LimitLens is a compact local-first taskbar utility for glancing at AI coding-service usage limits without opening multiple dashboards.
 
 > Screenshot placeholder: add a verified production screenshot before the first public release.
 
 ## Current status
 
-The Tauri widget foundation is implemented for Windows, macOS, and Linux architecture. Codex usage is collected through its documented local app-server rate-limit protocol. Claude Code and Kimi Code are registered with safe executable detection, but their live quota collection remains unavailable because no equivalent standalone, non-generative machine-readable query has been verified. LimitLens does not scrape terminal UIs, browser sessions, or credentials to fill that gap. Linux release artifacts remain subject to the documented GTK/WebKit Cargo Audit advisories in [security.md](docs/security.md).
+LimitLens runs without an application or settings window. On Windows, enabled and detected providers appear in a native widget embedded in the main horizontal taskbar. The notification-area icon remains available as a fallback and settings entry point. On macOS and Linux, provider rings use the notification area. Codex usage is collected through its documented local app-server rate-limit protocol. Claude Code and Kimi Code remain unavailable because no equivalent safe machine-readable query has been verified.
 
 | Provider     | Detection               | Short-term  | Weekly                  | Reset                   | Platforms             |
 | ------------ | ----------------------- | ----------- | ----------------------- | ----------------------- | --------------------- |
@@ -18,11 +18,13 @@ See [provider research](docs/provider-research.md) for the evidence and policy b
 
 ## Product scope
 
-- Frameless horizontal telemetry widget with SVG usage rings.
-- Per-provider window selection and a global WEEK override, ready for real normalized provider windows.
-- Dark and light warm-neutral themes with locally bundled JetBrains Mono.
-- Persisted settings, selected windows, provider order, widget position, and compact last-known usage cache.
-- Centralized 1/2/5/10-minute refresh scheduling, manual refresh, stale-state modeling, best-effort resume/visibility refresh, close-to-tray behavior, single-instance activation, always-on-top, position lock, and system startup setting.
+- A compact Windows taskbar widget that grows horizontally with enabled, detected providers.
+- Native notification-area rings remain available for settings and recovery.
+- Numeric progress rings generated in Rust with no WebView or rendering loop.
+- Independent per-provider window selection: click one tile to cycle its real windows; drag a tile horizontally to reposition the Windows widget.
+- Native right-click Settings menu for providers, refresh interval, ring theme, autostart, About, and Exit.
+- Persisted provider settings, selected windows, provider order, and compact last-known usage cache.
+- Centralized 1/2/5/10-minute refresh scheduling, manual refresh, stale-state modeling, single-instance behavior, and system startup setting.
 - No dashboard, notifications, history graphs, telemetry, analytics, LimitLens account, cloud backend, prompt capture, response capture, source-code capture, cookie scraping, or stored provider credentials.
 
 ## Installation
@@ -44,11 +46,13 @@ npm.cmd test
 npm.cmd run tauri:build
 ```
 
-Use `npm.cmd run dev` to start the development application on Windows PowerShell systems that restrict `npm.ps1` execution.
+Use `npm.cmd run dev` to start the development application on Windows PowerShell systems that restrict `npm.ps1` execution. LimitLens has no main window. On Windows, interact with the embedded taskbar widget or its notification-area icon.
+
+Windows may initially place the notification icon in the overflow panel. This does not affect the embedded widget. Windows owns and persists notification-area placement.
 
 ## Provider requirements
 
-LimitLens only detects clients installed on `PATH`. It invokes Codex's documented read-only app-server method only to read its rate limits, and does not run any model turn or copy credentials. A detected provider with unavailable usage remains visible and reports why in its tooltip and settings state.
+LimitLens only detects clients installed on `PATH`. It invokes Codex's documented read-only app-server method only to read its rate limits, and does not run any model turn or copy credentials. Undetected providers are listed in Settings but do not receive taskbar rings.
 
 When a provider documents a safe quota protocol, LimitLens will implement it behind a focused adapter with fixtures and contract tests. It will not use browser scraping, terminal emulation, local conversation-log parsing, or generated model requests as substitutes.
 
@@ -62,10 +66,12 @@ The widget is designed for negligible idle work: one scheduler, no rendering loo
 
 ## Troubleshooting
 
-- **Provider says Not installed:** install the official client and make its executable visible on `PATH`, then use Settings → Test Connection.
+- **Provider says Not detected:** install the official client, make its executable visible on `PATH`, enable it under **Settings > Providers**, and choose **Refresh Now**.
 - **Provider says Unsupported:** the client is present, but LimitLens has no safe documented usage query for it. This is intentional, not a request to sign in again.
-- **Widget is hidden:** use the system-tray menu, then choose **Show LimitLens**.
-- **Position is wrong after display changes:** show the widget from the tray. The app validates persisted coordinates and falls back to Tauri’s centered placement for obviously invalid values.
+- **Taskbar widget is absent:** right-click the fallback notification icon, enable a detected provider under **Providers**, then choose **Refresh Now**. Providers that cannot be identified are intentionally not rendered.
+- **Move the Windows widget:** drag the visible provider tile horizontally. LimitLens clamps and persists the position within the main taskbar.
+- **Notification icon is in the overflow panel:** drag it into the visible notification area if desired. Applications cannot force this Windows preference.
+- **Custom or vertical taskbar:** V1 embeds into the primary horizontal `Shell_TrayWnd`. Secondary, vertical, and heavily modified taskbars are not yet claimed as supported and retain the notification-area fallback.
 
 ## Contributing
 

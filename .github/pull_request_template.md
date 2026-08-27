@@ -3,7 +3,7 @@
 ## Verification
 
 - [ ] Formatting
-- [ ] TypeScript checks
+- [ ] Tray-state and icon tests
 - [ ] Frontend tests
 - [ ] Rust tests
 - [ ] Tauri build, where available

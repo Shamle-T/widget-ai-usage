@@ -3,7 +3,7 @@ use std::{collections::HashMap, fs, io, path::Path};
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 
-use crate::providers::ProviderUsage;
+use crate::{providers::ProviderUsage, storage};
 
 pub const CACHE_SCHEMA_VERSION: u32 = 1;
 
@@ -35,8 +35,6 @@ impl UsageCache {
 
     pub fn save_atomically(&self, path: &Path) -> io::Result<()> {
         let contents = serde_json::to_vec_pretty(self).map_err(io::Error::other)?;
-        let temporary = path.with_extension("json.tmp");
-        fs::write(&temporary, contents)?;
-        fs::rename(temporary, path)
+        storage::write_atomically(path, &contents)
     }
 }

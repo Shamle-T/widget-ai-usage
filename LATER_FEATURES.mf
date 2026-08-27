@@ -1,5 +1,22 @@
 LimitLens Later Features
 
+Recently implemented
+
+- ~~Replace the floating WebView widget with a native Windows taskbar widget.~~
+- ~~Add per-provider taskbar and notification-area usage rings.~~
+- ~~Persist taskbar position and support horizontal drag repositioning on Windows.~~
+- ~~Add native right-click settings, refresh, theme, autostart, and exit actions.~~
+- ~~Remove the global weekly override and keep window selection per provider.~~
+
+Needs work now
+
+- Stabilize the Codex integration so refreshes work reliably across real Windows installs, including npm shim layouts, auth failures, malformed responses, and timeout handling.
+- Rework the Windows widget UI. The current presentation is too cramped and low-quality; improve readability, spacing, click targets, visual hierarchy, and taskbar fit.
+- Add stronger diagnostics for provider detection and refresh failures so broken integrations can be debugged without guessing.
+- Validate the native taskbar widget on more Windows taskbar configurations and improve fallback behavior when embedding fails.
+
+Still pending
+
 - Choose an open-source license.
 - Notifications / quota threshold alerts.
 - Gemini CLI adapter.

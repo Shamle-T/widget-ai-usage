@@ -10,7 +10,7 @@ use std::{
 
 use chrono::{DateTime, Utc};
 use serde::Serialize;
-use tauri::{AppHandle, Emitter, Manager, PhysicalPosition, PhysicalSize};
+use tauri::{AppHandle, Manager};
 use tauri_plugin_autostart::ManagerExt;
 use tokio::sync::Mutex;
 
@@ -27,6 +27,7 @@ use crate::{
 #[serde(rename_all = "snake_case")]
 pub enum ProviderStatus {
     Loading,
+    Detected,
     Live,
     Cached,
     Stale,
@@ -50,17 +51,17 @@ pub(crate) struct ProviderRuntime {
 #[derive(Debug, Clone, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct ProviderView {
-    id: String,
-    display_name: String,
-    enabled: bool,
-    detected: bool,
-    status: ProviderStatus,
-    status_message: Option<String>,
-    source: String,
-    selected_window_id: Option<String>,
-    windows: Vec<UsageWindow>,
-    updated_at: Option<DateTime<Utc>>,
-    last_successful_at: Option<DateTime<Utc>>,
+    pub(crate) id: String,
+    pub(crate) display_name: String,
+    pub(crate) enabled: bool,
+    pub(crate) detected: bool,
+    pub(crate) status: ProviderStatus,
+    pub(crate) status_message: Option<String>,
+    pub(crate) source: String,
+    pub(crate) selected_window_id: Option<String>,
+    pub(crate) windows: Vec<UsageWindow>,
+    pub(crate) updated_at: Option<DateTime<Utc>>,
+    pub(crate) last_successful_at: Option<DateTime<Utc>>,
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -68,12 +69,10 @@ pub struct ProviderView {
 pub struct AppViewState {
     pub version: u32,
     pub theme: Theme,
-    pub weekly_override: bool,
     pub refresh_interval_minutes: u8,
-    pub always_on_top: bool,
-    pub lock_position: bool,
     pub start_with_system: bool,
     pub refreshing: bool,
+    pub taskbar_offset: Option<i32>,
     pub providers: Vec<ProviderView>,
 }
 
@@ -130,37 +129,6 @@ impl AppState {
         })
     }
 
-    pub fn apply_window_preferences(&self, app: &AppHandle) {
-        let app = app.clone();
-        let settings_path = self.settings_path.clone();
-        tauri::async_runtime::spawn(async move {
-            let settings = config::load(&settings_path);
-            if let Some(window) = app.get_webview_window("main") {
-                let _ = window.set_always_on_top(settings.always_on_top);
-                if let Some(position) = settings.window_position {
-                    // A missing monitor is handled by retaining the centered Tauri default.
-                    if position.x >= -16_000
-                        && position.y >= -16_000
-                        && position.x <= 16_000
-                        && position.y <= 16_000
-                    {
-                        let _ = window.set_position(PhysicalPosition::new(position.x, position.y));
-                    }
-                }
-            }
-        });
-    }
-
-    pub fn record_window_position(&self, position: PhysicalPosition<i32>) {
-        if let Ok(mut values) = self.settings.try_lock() {
-            if values.lock_position {
-                return;
-            }
-            values.window_position = Some(position.into());
-            let _ = config::save_atomically(&self.settings_path, &values);
-        }
-    }
-
     pub async fn view_state(&self) -> AppViewState {
         let settings = self.settings.lock().await.clone();
         let runtime = self.runtime.lock().await;
@@ -194,30 +162,18 @@ impl AppState {
         AppViewState {
             version: 1,
             theme: settings.theme,
-            weekly_override: settings.weekly_override,
             refresh_interval_minutes: settings.refresh_interval_minutes,
-            always_on_top: settings.always_on_top,
-            lock_position: settings.lock_position,
             start_with_system: settings.start_with_system,
             refreshing: self.refresh_in_progress.load(Ordering::Relaxed),
+            taskbar_offset: settings.taskbar_offset,
             providers,
         }
     }
 
-    pub async fn emit_view(&self, app: &AppHandle) {
+    pub async fn sync_tray(&self, app: &AppHandle) {
         let view = self.view_state().await;
-        if let Some(window) = app.get_webview_window("main") {
-            let provider_count = view
-                .providers
-                .iter()
-                .filter(|provider| provider.enabled && provider.detected)
-                .count()
-                .max(1) as f64;
-            // Grow for known providers and rely on the frontend scroll fallback past this cap.
-            let width = (142.0 + provider_count * 100.0).clamp(350.0, 1_800.0);
-            let _ = window.set_size(PhysicalSize::new(width, 156.0));
-        }
-        let _ = app.emit("usage-state-updated", view);
+        let _ = crate::tray::sync(app, &view);
+        crate::taskbar_widget::sync(app, &view);
     }
 
     pub async fn persist_settings(&self) {
@@ -229,28 +185,108 @@ impl AppState {
         if self.refresh_in_progress.swap(true, Ordering::AcqRel) {
             return;
         }
-        self.emit_view(&app).await;
+        self.sync_tray(&app).await;
         let enabled = self.settings.lock().await.enabled_providers.clone();
         let adapters = self.registry.adapters().to_vec();
         let mut tasks = tokio::task::JoinSet::new();
         for adapter in adapters {
-            if enabled.get(adapter.id()).copied().unwrap_or(true) {
-                tasks.spawn_blocking(move || {
-                    (
-                        adapter.id().to_owned(),
-                        adapter.source_name().to_owned(),
-                        adapter.detect(),
-                        adapter.fetch_usage(),
-                    )
-                });
-            }
+            let provider_enabled = enabled.get(adapter.id()).copied().unwrap_or(true);
+            tasks.spawn_blocking(move || {
+                let availability = adapter.detect();
+                let result = if provider_enabled
+                    && matches!(&availability, ProviderAvailability::Detected)
+                {
+                    Some(adapter.fetch_usage())
+                } else {
+                    None
+                };
+                (
+                    adapter.id().to_owned(),
+                    adapter.source_name().to_owned(),
+                    availability,
+                    result,
+                )
+            });
         }
         while let Some(Ok((id, source, availability, result))) = tasks.join_next().await {
             self.apply_provider_result(id, source, availability, result)
                 .await;
         }
         self.refresh_in_progress.store(false, Ordering::Release);
-        self.emit_view(&app).await;
+        self.sync_tray(&app).await;
+    }
+
+    pub async fn set_provider_enabled(
+        &self,
+        app: &AppHandle,
+        provider_id: &str,
+        enabled: bool,
+    ) -> Result<(), String> {
+        if self.registry.get(provider_id).is_none() {
+            return Err("Unknown provider.".to_owned());
+        }
+        self.settings
+            .lock()
+            .await
+            .enabled_providers
+            .insert(provider_id.to_owned(), enabled);
+        self.persist_settings().await;
+        self.sync_tray(app).await;
+        Ok(())
+    }
+
+    pub async fn set_refresh_interval(&self, app: &AppHandle, minutes: u8) -> Result<(), String> {
+        if !matches!(minutes, 1 | 2 | 5 | 10) {
+            return Err("Refresh interval must be 1, 2, 5, or 10 minutes.".to_owned());
+        }
+        self.settings.lock().await.refresh_interval_minutes = minutes;
+        self.persist_settings().await;
+        self.sync_tray(app).await;
+        Ok(())
+    }
+
+    pub async fn set_theme(&self, app: &AppHandle, theme: Theme) {
+        self.settings.lock().await.theme = theme;
+        self.persist_settings().await;
+        self.sync_tray(app).await;
+    }
+
+    pub async fn set_taskbar_offset(&self, offset: i32) {
+        self.settings.lock().await.taskbar_offset = Some(offset);
+        self.persist_settings().await;
+    }
+
+    pub async fn cycle_provider_window(
+        &self,
+        app: &AppHandle,
+        provider_id: &str,
+    ) -> Result<(), String> {
+        let windows = self
+            .runtime
+            .lock()
+            .await
+            .get(provider_id)
+            .and_then(|current| current.usage.as_ref().map(|usage| usage.windows.clone()))
+            .unwrap_or_default();
+        if windows.len() < 2 {
+            return Ok(());
+        }
+
+        let mut settings = self.settings.lock().await;
+        let next_index = next_window_index(
+            &windows,
+            settings
+                .selected_windows
+                .get(provider_id)
+                .map(String::as_str),
+        );
+        settings
+            .selected_windows
+            .insert(provider_id.to_owned(), windows[next_index].id.clone());
+        drop(settings);
+        self.persist_settings().await;
+        self.sync_tray(app).await;
+        Ok(())
     }
 
     async fn apply_provider_result(
@@ -258,7 +294,7 @@ impl AppState {
         id: String,
         source: String,
         availability: ProviderAvailability,
-        result: Result<ProviderUsage, ProviderError>,
+        result: Option<Result<ProviderUsage, ProviderError>>,
     ) {
         let mut runtime = self.runtime.lock().await;
         let Some(current) = runtime.get_mut(&id) else {
@@ -271,6 +307,15 @@ impl AppState {
             current.status_message = Some("Provider client was not detected on PATH.".to_owned());
             return;
         }
+        let Some(result) = result else {
+            if current.usage.is_some() {
+                current.status = ProviderStatus::Cached;
+            } else {
+                current.status = ProviderStatus::Detected;
+                current.status_message = Some("Provider client was detected on PATH.".to_owned());
+            }
+            return;
+        };
         match result {
             Ok(mut usage) => {
                 for window in &mut usage.windows {
@@ -320,5 +365,39 @@ impl AppState {
         self.settings.lock().await.start_with_system = enabled;
         self.persist_settings().await;
         Ok(())
+    }
+}
+
+fn next_window_index(windows: &[UsageWindow], selected: Option<&str>) -> usize {
+    if windows.is_empty() {
+        return 0;
+    }
+    selected
+        .and_then(|selected| windows.iter().position(|window| window.id == selected))
+        .map(|index| (index + 1) % windows.len())
+        .unwrap_or(0)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::next_window_index;
+    use crate::providers::{UsageWindow, UsageWindowKind};
+
+    fn window(id: &str) -> UsageWindow {
+        UsageWindow {
+            id: id.to_owned(),
+            display_name: id.to_owned(),
+            kind: UsageWindowKind::ProviderSpecific,
+            used_percent: Some(0.0),
+            resets_at: None,
+        }
+    }
+
+    #[test]
+    fn cycles_only_through_the_selected_providers_windows() {
+        let windows = vec![window("hourly"), window("weekly")];
+        assert_eq!(next_window_index(&windows, Some("hourly")), 1);
+        assert_eq!(next_window_index(&windows, Some("weekly")), 0);
+        assert_eq!(next_window_index(&windows, Some("removed-window")), 0);
     }
 }

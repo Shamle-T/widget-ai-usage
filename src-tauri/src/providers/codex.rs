@@ -1,5 +1,6 @@
 use std::{
     io::{BufRead, BufReader, Write},
+    path::{Path, PathBuf},
     process::{Command, Stdio},
     sync::mpsc,
     thread,
@@ -10,18 +11,13 @@ use chrono::{DateTime, Utc};
 use serde::Deserialize;
 
 use super::{
-    registry::executable_exists, ProviderAdapter, ProviderAvailability, ProviderError,
-    ProviderUsage, UsageWindow, UsageWindowKind,
+    registry::find_executable_with_extensions, ProviderAdapter, ProviderAvailability,
+    ProviderError, ProviderUsage, UsageWindow, UsageWindowKind,
 };
 
 const APP_SERVER_TIMEOUT: Duration = Duration::from_secs(8);
 const MAX_RESPONSE_LINES: usize = 16;
 const MAX_RESPONSE_LINE_BYTES: usize = 64 * 1024;
-
-#[cfg(target_os = "windows")]
-const CODEX_COMMAND: &str = "codex.cmd";
-#[cfg(not(target_os = "windows"))]
-const CODEX_COMMAND: &str = "codex";
 
 pub struct CodexProvider;
 
@@ -39,7 +35,7 @@ impl ProviderAdapter for CodexProvider {
     }
 
     fn detect(&self) -> ProviderAvailability {
-        if executable_exists(CODEX_COMMAND) {
+        if resolve_codex_executable().is_some() {
             ProviderAvailability::Detected
         } else {
             ProviderAvailability::NotInstalled
@@ -47,12 +43,10 @@ impl ProviderAdapter for CodexProvider {
     }
 
     fn fetch_usage(&self) -> Result<ProviderUsage, ProviderError> {
-        if matches!(self.detect(), ProviderAvailability::NotInstalled) {
-            return Err(ProviderError::NotInstalled);
-        }
+        let executable = resolve_codex_executable().ok_or(ProviderError::NotInstalled)?;
 
         // This is the documented, read-only Codex app-server flow. It creates no thread or turn.
-        let mut child = Command::new(CODEX_COMMAND)
+        let mut child = Command::new(executable)
             .arg("app-server")
             .stdin(Stdio::piped())
             .stdout(Stdio::piped())
@@ -125,6 +119,48 @@ impl ProviderAdapter for CodexProvider {
 
         result
     }
+}
+
+#[cfg(not(target_os = "windows"))]
+fn resolve_codex_executable() -> Option<PathBuf> {
+    find_executable_with_extensions("codex", &[""])
+}
+
+#[cfg(target_os = "windows")]
+fn resolve_codex_executable() -> Option<PathBuf> {
+    find_executable_with_extensions("codex", &[".exe"]).or_else(|| {
+        let shim = find_executable_with_extensions("codex", &[".cmd"])?;
+        npm_codex_candidates(&shim)
+            .into_iter()
+            .find(|candidate| candidate.is_file())
+    })
+}
+
+#[cfg(target_os = "windows")]
+fn npm_codex_candidates(shim: &Path) -> Vec<PathBuf> {
+    let Some(bin_directory) = shim.parent() else {
+        return Vec::new();
+    };
+    let (package, target) = if cfg!(target_arch = "aarch64") {
+        ("codex-win32-arm64", "aarch64-pc-windows-msvc")
+    } else {
+        ("codex-win32-x64", "x86_64-pc-windows-msvc")
+    };
+    let package_root = bin_directory.join("node_modules").join("@openai");
+    let vendor_tail = Path::new("vendor")
+        .join(target)
+        .join("bin")
+        .join("codex.exe");
+    vec![
+        package_root
+            .join("codex")
+            .join("node_modules")
+            .join("@openai")
+            .join(package)
+            .join(&vendor_tail),
+        package_root.join(package).join(&vendor_tail),
+        package_root.join("codex").join(&vendor_tail),
+    ]
 }
 
 #[derive(Debug, Deserialize)]
@@ -244,6 +280,11 @@ fn duration_label(minutes: Option<u64>) -> String {
 mod tests {
     use super::{parse_rate_limits, RateLimitsResponse};
 
+    #[cfg(target_os = "windows")]
+    use super::npm_codex_candidates;
+    #[cfg(target_os = "windows")]
+    use std::path::Path;
+
     #[test]
     fn parses_codex_consumed_percentages_without_inversion() {
         let response: RateLimitsResponse = serde_json::from_str(
@@ -264,5 +305,28 @@ mod tests {
         let response: RateLimitsResponse =
             serde_json::from_str(r#"{"rateLimits":null}"#).expect("fixture is valid");
         assert!(parse_rate_limits(response).is_err());
+    }
+
+    #[cfg(target_os = "windows")]
+    #[test]
+    fn resolves_the_official_npm_native_binary_layout_without_a_shell() {
+        let target = if cfg!(target_arch = "aarch64") {
+            "aarch64-pc-windows-msvc"
+        } else {
+            "x86_64-pc-windows-msvc"
+        };
+        let candidates =
+            npm_codex_candidates(Path::new(r"C:\Users\test\AppData\Roaming\npm\codex.cmd"));
+        assert!(candidates.iter().any(|candidate| {
+            candidate.ends_with(
+                Path::new("vendor")
+                    .join(target)
+                    .join("bin")
+                    .join("codex.exe"),
+            )
+        }));
+        assert!(candidates
+            .iter()
+            .all(|candidate| candidate.extension().is_some_and(|ext| ext == "exe")));
     }
 }

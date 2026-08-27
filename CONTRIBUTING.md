@@ -29,4 +29,4 @@ Provider changes must:
 
 ## Pull requests
 
-Keep pull requests focused. Run formatting, TypeScript checks, frontend tests, Rust formatting, Rust tests, and release build checks that your environment supports. State any checks that could not run.
+Keep pull requests focused. Run Rust formatting, Clippy, Rust tests, dependency audits, and release build checks that your environment supports. State any checks that could not run.

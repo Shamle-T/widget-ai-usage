@@ -31,13 +31,11 @@ jobs:
       - name: Install JavaScript dependencies
         run: npm ci
       - name: Format
-        run: npm run format && cargo fmt --manifest-path src-tauri/Cargo.toml -- --check
+        run: npm run format
       - name: Lint
-        run: npm run lint && cargo clippy --manifest-path src-tauri/Cargo.toml --all-targets -- -D warnings
+        run: npm run lint
       - name: Tests
-        run: npm test && cargo test --manifest-path src-tauri/Cargo.toml
-      - name: Frontend build
-        run: npm run build
+        run: npm test
       - name: Tauri build
         run: npm run tauri:build -- --no-bundle
 

@@ -4,29 +4,10 @@
   "version": "0.1.0",
   "identifier": "com.limitlens.widget",
   "build": {
-    "beforeDevCommand": "npm.cmd run dev:frontend",
-    "beforeBuildCommand": "npm.cmd run build",
-    "devUrl": "http://localhost:1420",
-    "frontendDist": "../dist"
+    "frontendDist": "../frontend-dist"
   },
   "app": {
-    "windows": [
-      {
-        "label": "main",
-        "title": "LimitLens",
-        "width": 425,
-        "height": 156,
-        "minWidth": 350,
-        "minHeight": 128,
-        "resizable": false,
-        "decorations": false,
-        "transparent": true,
-        "shadow": true,
-        "alwaysOnTop": false,
-        "skipTaskbar": false,
-        "center": true
-      }
-    ],
+    "windows": [],
     "security": {
       "csp": "default-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self'; connect-src 'self' ipc: http://ipc.localhost"
     }

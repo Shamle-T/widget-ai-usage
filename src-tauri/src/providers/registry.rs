@@ -62,17 +62,24 @@ impl ProviderRegistry {
 }
 
 pub(crate) fn executable_exists(name: &str) -> bool {
+    find_executable(name).is_some()
+}
+
+pub(crate) fn find_executable(name: &str) -> Option<PathBuf> {
     let extensions: &[&str] = if cfg!(windows) {
         &[".exe", ".cmd", ".bat", ""]
     } else {
         &[""]
     };
-    env::var_os("PATH").is_some_and(|paths| {
-        env::split_paths(&paths).any(|directory| {
-            extensions.iter().any(|extension| {
-                let mut candidate = PathBuf::from(&directory);
-                candidate.push(format!("{name}{extension}"));
-                candidate.is_file()
+    find_executable_with_extensions(name, extensions)
+}
+
+pub(crate) fn find_executable_with_extensions(name: &str, extensions: &[&str]) -> Option<PathBuf> {
+    env::var_os("PATH").and_then(|paths| {
+        env::split_paths(&paths).find_map(|directory| {
+            extensions.iter().find_map(|extension| {
+                let candidate = directory.join(format!("{name}{extension}"));
+                candidate.is_file().then_some(candidate)
             })
         })
     })

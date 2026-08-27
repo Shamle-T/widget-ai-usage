@@ -12,6 +12,6 @@ Include affected version, platform, reproduction steps, impact, and any proof of
 - LimitLens will not read provider tokens from local configuration or environment variables.
 - LimitLens will not send AI prompts or perform model inference to estimate quota.
 - Provider adapters must use documented safe mechanisms and return unavailable when none exists.
-- The frontend must never receive arbitrary shell or filesystem access.
+- Do not add WebView, arbitrary shell, or broad filesystem access without a documented security review.
 
 See [docs/security.md](docs/security.md) for the current review record.

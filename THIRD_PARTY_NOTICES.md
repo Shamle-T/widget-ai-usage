@@ -2,8 +2,6 @@
 
 ## JetBrains Mono
 
-The bundled JetBrains Mono webfont files are provided through `@fontsource/jetbrains-mono`. JetBrains Mono is licensed under the SIL Open Font License, Version 1.1.
+LimitLens bundles `JetBrainsMono-Regular.ttf` version 2.304 from the official JetBrains Mono project. Copyright 2020 The JetBrains Mono Project Authors. The font is distributed under the SIL Open Font License 1.1; the complete license is included at `src-tauri/resources/fonts/JetBrainsMono-OFL.txt`.
 
-Copyright 2020 The JetBrains Mono Project Authors.
-
-The full license text is distributed with the font package and is available at [scripts.sil.org/OFL](https://scripts.sil.org/OFL).
+Rust and build-tool dependencies remain governed by their respective upstream licenses as recorded in `Cargo.lock` and `package-lock.json`.
